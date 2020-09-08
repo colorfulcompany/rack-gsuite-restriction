@@ -22,7 +22,26 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Rails app
+
+```
+config.middleware.use Rack::GSuiteRestriction, need_auth_path,
+  :client_id     => GOOGLE_OAUTH_CLIENT_ID,      # required
+  :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,  # required
+  :auth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
+```
+
+### Rack app
+
+```
+Rack::Builder.new do
+  use Rack::GSuiteRestriction, need_auth_path,
+    :client_id     => GOOGLE_OAUTH_CLIENT_ID,      # required
+    :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,  # required
+    :auth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
+  run Rack::Application
+end
+```
 
 ## Development
 
