@@ -1,7 +1,6 @@
 require 'rack'
 require 'rack/contrib'
 require_relative './gsuite_restriction/oauth_client'
-require_relative './gsuite_restriction/request_controller'
 require_relative './gsuite_restriction/session/user'
 require_relative './gsuite_restriction/session/location'
 
