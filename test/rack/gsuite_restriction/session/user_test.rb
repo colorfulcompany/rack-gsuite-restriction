@@ -1,7 +1,6 @@
 require "test_helper"
 
 describe Rack::GSuiteRestriction::Session::User do
-  TEST_APP_MESSAGE = 'Hello, from App defined in Test !'
   let(:app) { lambda {|env| [200, {}, [TEST_APP_MESSAGE]]} }
   let(:domain) { 'test.com' }
 
