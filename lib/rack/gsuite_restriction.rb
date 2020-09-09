@@ -2,6 +2,8 @@ require 'rack'
 require 'rack/contrib'
 require_relative './gsuite_restriction/oauth_client'
 require_relative './gsuite_restriction/request_controller'
+require_relative './gsuite_restriction/session/user'
+require_relative './gsuite_restriction/session/location'
 
 module Rack
   class GSuiteRestriction
@@ -15,17 +17,17 @@ module Rack
     #
     def initialize(app, path, config = {}, &block)
       dumb_app = lambda {|env| [418, {}, ['not captured']]}
+      @oauth_client = OAuthClient.new(app, config)
+      auth_path = need_auth_path(path, @oauth_client)
+
       @path_segment = if block_given?
-                        SimpleEndpoint.new(dumb_app, path) {|req, res, match| block.call(req, res, match) }
+                        SimpleEndpoint.new(dumb_app, auth_path) {|req, res, match| block.call(req, res, match) }
                       else
-                        SimpleEndpoint.new(dumb_app, path) {|req, res, match| need_auth(req, res, match) }
+                        SimpleEndpoint.new(dumb_app, auth_path) {|req, res, match| need_auth(req, res, match) }
                       end
-      @controller = RequestController.new(
-        app,
-        OAuthClient.new(app, config))
       @app = app
     end
-    attr_reader :path_segment, :controller
+    attr_reader :path_segment, :oauth_client
 
     #
     # @param [Object] env
@@ -33,9 +35,6 @@ module Rack
     #
     def call(env)
       res = @path_segment.call(env)
-      req = Rack::Request.new(env)
-
-      res = controller.build_response(req, res)
 
       return res[0] != 418 ? res : @app.call(env)
     end
@@ -48,8 +47,59 @@ module Rack
     # :reek:UtilityFunction :reek:UnusedParameters
     def need_auth(req, res, match = nil)
       res.status = 401
+      body = ''
 
-      ''
+      user_session = Session::User.new(req)
+      location = Session::Location.new(req)
+
+      case req.path
+
+      when oauth_client.request_path
+        status, header, body = oauth_client.call(req.env)
+        res.status = status
+        header.keys.each { |k| res[k] = header[k] }
+
+      when oauth_client.callback_path
+        oauth_client.call(req.env)
+
+        if user_session.create(req.env['omniauth.auth'])
+          status, header, body = redirect_to(location.restore)
+          res.status = status
+          header.keys.each { |k| res[k] = header[k] }
+        end
+
+      else
+        # user is not authenticated.
+        if user_session.find.nil?
+          location.store(req.url)
+          status, header, body = redirect_to(oauth_client.request_path)
+          res.status = status
+          header.keys.each { |k| res[k] = header[k] }
+
+        # user is authenticated.
+        else
+          body = 'pass'.to_sym
+        end
+      end
+
+      body
+    end
+
+    # 
+    # @param [String] path
+    # @return [Object]
+    # 
+    def redirect_to(path)
+      [301, { 'Location' => path }, []]
+    end
+
+    # 
+    # @param [String|Regexp] path
+    # @param [Object] oauth_client
+    # @return [Regexp]
+    # 
+    def need_auth_path(path, oauth_client)
+      Regexp.union(path, oauth_client.request_path, oauth_client.callback_path)
     end
   end
 end

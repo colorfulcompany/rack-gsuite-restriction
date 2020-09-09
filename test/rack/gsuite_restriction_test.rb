@@ -5,6 +5,8 @@ require "test_helper"
 describe Rack::GSuiteRestriction do
   TEST_APP_MESSAGE = 'Hello, from App defined in Test !'
   let(:app) { lambda {|env| [200, {}, [TEST_APP_MESSAGE]]} }
+  let(:domain) { 'test.com' }
+  let(:user) { Hashie::Mash.new({ info: {email: "foo@#{domain}"}}) }
 
   def config
     {
@@ -32,7 +34,14 @@ describe Rack::GSuiteRestriction do
   #
   # :reek:UtilityFunction
   def request(uri, opts = {})
-    Rack::MockRequest.env_for(uri, opts.merge(lint: true))
+    env = Rack::MockRequest.env_for(uri, opts.merge(lint: true))
+    session = Rack::Session::Cookie.new(app, {secret: 'test'})
+    session.call(env)
+    env
+  end
+
+  def create_user(env)
+    (Rack::GSuiteRestriction::Session::User.new(Rack::Request.new(env), domain)).create(user)
   end
 
   describe 'initialize' do
@@ -47,23 +56,30 @@ describe Rack::GSuiteRestriction do
         end
       }
       it 'block called' do
-        @restrict.controller.stub(:build_response, @restrict.path_segment.call(@request)) do
-          assert {
-            status, header, body = @restrict.call(@request)
-            body == ['block given']
-          }
-        end
+        assert {
+          status, header, body = @restrict.call(@request)
+          body == ['block given']
+        }
       end
     end
 
     describe 'no block' do
-      before {
-        @restrict = restrict('/')
-      }
-      it 'return default response' do
-        @restrict.controller.stub(:build_response, @restrict.path_segment.call(@request)) do
+      describe 'user is not authenticated' do
+        it 'return redirect' do
           assert {
-            [401, {'Content-Length' => '0'}, ['']] == @restrict.call(@request)
+            status, header, body = restrict('/').call(@request)
+            status == 301
+          }
+        end
+      end
+      describe 'user is authenticated' do 
+        before {
+          create_user(@request)
+        }
+        it 'return app response' do
+          assert {
+            status, header, body = restrict('/').call(@request)
+            [status, body] == [200, [TEST_APP_MESSAGE]]
           }
         end
       end
@@ -77,12 +93,10 @@ describe Rack::GSuiteRestriction do
         @restrict = restrict(/^\/.*/)
       }
       it {
-        @restrict.controller.stub(:build_response, @restrict.path_segment.call(@request)) do
-          status, headers, body = @restrict.call(@request)
-          assert {
-            status == 401
-          }
-        end
+        status, headers, body = @restrict.call(@request)
+        assert {
+          status == 301
+        }
       }
     end
 
@@ -90,32 +104,53 @@ describe Rack::GSuiteRestriction do
       let(:middleware) { restrict(/^\/admin.*/) }
 
       describe '/' do
-        before {
-          @request = request('/')
-          @restrict = middleware
-        }
         it 'auth not required' do
-          @restrict.controller.stub(:build_response, @restrict.path_segment.call(@request)) do
-            status, headers, body = @restrict.call(request('/'))
-            assert {
-              [status, body] == [200, [TEST_APP_MESSAGE]]
-            }
-          end
+          status, headers, body = middleware.call(request('/'))
+          assert {
+            [status, body] == [200, [TEST_APP_MESSAGE]]
+          }
         end
       end
 
       describe '/admin/user' do
         before {
           @request = request('/admin/user')
-          @restrict = middleware
         }
-        it {
-          @restrict.controller.stub(:build_response, @restrict.path_segment.call(@request)) do
-            status, headers, body = @restrict.call(@request)
-            assert {
-              status == 401
-            }
-          end
+        it 'user is not authenticated' do
+          status, headers, body = middleware.call(@request)
+          assert {
+            status == 301
+          }
+        end
+        it 'user is  authenticated' do
+          create_user(@request)
+          status, headers, body = middleware.call(@request)
+          assert {
+            status == 200
+          }
+        end
+      end
+    end
+  end
+
+  describe 'option omniauth path prefix' do
+    describe 'not under need auth path' do
+      before {
+        c = config.merge(omniauth_path_prefix: '/foo')
+        @restrict = Rack::GSuiteRestriction.new(app, /^\/admin.*/, c)
+        @request = request('/admin')
+      }
+      it 'redirect to omniauth request path' do
+        assert {
+          status, header, body = @restrict.call(@request)
+          status == 301
+        }
+      end
+      it 'user is authenticated' do
+        create_user(@request)
+        assert {
+          status, header, body = @restrict.call(@request)
+          [status, body] == [200, [TEST_APP_MESSAGE]]
         }
       end
     end
