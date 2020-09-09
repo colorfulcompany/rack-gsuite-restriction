@@ -4,7 +4,7 @@ require 'omniauth-google-oauth2'
 module Rack
   class GSuiteRestriction
     class OAuthClient
-      AUTH_PATH_PREFIX = '/admin/auth'
+      OMNIAUTH_PATH_PREFIX = '/admin/auth'
 
       # 
       # @param [Object] app
@@ -13,7 +13,7 @@ module Rack
       def initialize(app, config)
         id = config.delete(:client_id)
         secret = config.delete(:client_secret)
-        path_prefix = config.delete(:auth_path_prefix) || AUTH_PATH_PREFIX
+        path_prefix = config.delete(:omniauth_path_prefix) || OMNIAUTH_PATH_PREFIX
 
         if !id || !secret
           raise ArgumentError.new('Rack::GSuiteRestriction::AuthClient need params: :client_id & :client_secret')

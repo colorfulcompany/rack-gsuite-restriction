@@ -26,9 +26,9 @@ Or install it yourself as:
 
 ```
 config.middleware.use Rack::GSuiteRestriction, need_auth_path,
-  :client_id     => GOOGLE_OAUTH_CLIENT_ID,      # required
-  :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,  # required
-  :auth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
+  :client_id     => GOOGLE_OAUTH_CLIENT_ID,          # required
+  :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,      # required
+  :omniauth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
 ```
 
 ### Rack app
@@ -36,9 +36,9 @@ config.middleware.use Rack::GSuiteRestriction, need_auth_path,
 ```
 Rack::Builder.new do
   use Rack::GSuiteRestriction, need_auth_path,
-    :client_id     => GOOGLE_OAUTH_CLIENT_ID,      # required
-    :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,  # required
-    :auth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
+    :client_id     => GOOGLE_OAUTH_CLIENT_ID,          # required
+    :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,      # required
+    :omniauth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
   run Rack::Application
 end
 ```

@@ -45,7 +45,7 @@ describe Rack::GSuiteRestriction::OAuthClient do
     end
     describe 'request path is custom' do
       before {
-        @client = Rack::GSuiteRestriction::OAuthClient.new(app, config.merge(:auth_path_prefix => '/foo/bar'))
+        @client = Rack::GSuiteRestriction::OAuthClient.new(app, config.merge(:omniauth_path_prefix => '/foo/bar'))
       }
       it {
         assert {
@@ -68,7 +68,7 @@ describe Rack::GSuiteRestriction::OAuthClient do
     end
     describe 'request path is custom' do
       before {
-        @client = Rack::GSuiteRestriction::OAuthClient.new(app, config.merge(:auth_path_prefix => '/foo/bar'))
+        @client = Rack::GSuiteRestriction::OAuthClient.new(app, config.merge(:omniauth_path_prefix => '/foo/bar'))
       }
       it {
         assert {
