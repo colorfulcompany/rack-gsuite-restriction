@@ -12,18 +12,13 @@ module Rack
     # @param [Object] app
     # @param [String|Regexp] path
     # @param [Hash] config
-    # @param [Proc] block
     #
-    def initialize(app, path, config = {}, &block)
+    def initialize(app, path, config = {})
       dumb_app = lambda {|env| [418, {}, ['not captured']]}
       @oauth_client = OAuthClient.new(app, config)
       auth_path = need_auth_path(path, @oauth_client)
 
-      @path_segment = if block_given?
-                        SimpleEndpoint.new(dumb_app, auth_path) {|req, res, match| block.call(req, res, match) }
-                      else
-                        SimpleEndpoint.new(dumb_app, auth_path) {|req, res, match| need_auth(req, res, match) }
-                      end
+      @path_segment = SimpleEndpoint.new(dumb_app, auth_path) {|req, res, match| need_auth(req, res, match) }
       @app = app
     end
     attr_reader :path_segment, :oauth_client

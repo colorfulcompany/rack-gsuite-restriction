@@ -19,12 +19,8 @@ describe Rack::GSuiteRestriction do
   # @param [Object] args
   # @return [Rack::GSuiteRestriction]
   #
-  def restrict(args, &block)
-    if block_given?
-      Rack::GSuiteRestriction.new(app, args, config) {|req, res, match| block.call(req, res, match) }
-    else
-      Rack::GSuiteRestriction.new(app, args, config)
-    end
+  def restrict(args)
+    Rack::GSuiteRestriction.new(app, args, config)
   end
 
   #
@@ -48,21 +44,6 @@ describe Rack::GSuiteRestriction do
     before {
       @request = request('/')
     }
-    describe 'block given' do
-      before {
-        @restrict = restrict('/') do |req, res|
-          res.status = 401
-          'block given'
-        end
-      }
-      it 'block called' do
-        assert {
-          status, header, body = @restrict.call(@request)
-          body == ['block given']
-        }
-      end
-    end
-
     describe 'no block' do
       describe 'user is not authenticated' do
         it 'return redirect' do
