@@ -5,17 +5,22 @@ require "test_helper"
 describe Rack::GSuiteRestriction do
   TEST_APP_MESSAGE = 'Hello, from App defined in Test !'
   let(:app) { lambda {|env| [200, {}, [TEST_APP_MESSAGE]]} }
+  let(:domain) { 'test.com' }
+  let(:user) { Hashie::Mash.new({ info: {email: "foo@#{domain}"}}) }
+
+  def config
+    {
+      :client_id => 'foo',
+      :client_secret => 'bar',
+    }
+  end
 
   #
   # @param [Object] args
   # @return [Rack::GSuiteRestriction]
   #
-  def restrict(args, &block)
-    if block_given?
-      Rack::GSuiteRestriction.new(app, args) {|req, res, match| block.call(req, res, match) }
-    else
-      Rack::GSuiteRestriction.new(app, args)
-    end
+  def restrict(args)
+    Rack::GSuiteRestriction.new(app, args, config)
   end
 
   #
@@ -25,39 +30,53 @@ describe Rack::GSuiteRestriction do
   #
   # :reek:UtilityFunction
   def request(uri, opts = {})
-    Rack::MockRequest.env_for(uri, opts.merge(lint: true))
+    env = Rack::MockRequest.env_for(uri, opts.merge(lint: true))
+    session = Rack::Session::Cookie.new(app, {secret: 'test'})
+    session.call(env)
+    env
   end
-  
-  describe 'initialize' do
-    describe 'block given' do
-      it 'block called' do
-        middleware = restrict('/') do |req, res|
-          res.status = 401
-          'block given'
-        end
-                             
-        assert {
-          status, header, body = middleware.call(request('/'))
-          body == ['block given']
-        }
-      end
-    end
 
+  def create_user(env)
+    (Rack::GSuiteRestriction::Session::User.new(Rack::Request.new(env), domain)).create(user)
+  end
+
+  describe 'initialize' do
+    before {
+      @request = request('/')
+    }
     describe 'no block' do
-      it 'return default response' do
-        assert {
-          [401, {'Content-Length' => '0'}, ['']] == restrict('/').call(request('/'))
+      describe 'user is not authenticated' do
+        it 'return redirect' do
+          assert {
+            status, header, body = restrict('/').call(@request)
+            status == 302
+          }
+        end
+      end
+      describe 'user is authenticated' do 
+        before {
+          create_user(@request)
         }
+        it 'return app response' do
+          assert {
+            status, header, body = restrict('/').call(@request)
+            [status, body] == [200, [TEST_APP_MESSAGE]]
+          }
+        end
       end
     end
   end
 
   describe 'specific path require auth ( with Regexp )' do
     describe 'whole' do
+      before {
+        @request = request('/')
+        @restrict = restrict(/^\/.*/)
+      }
       it {
-        status, headers, body = restrict(/^\/.*/).call(request('/'))
+        status, headers, body = @restrict.call(@request)
         assert {
-          status == 401
+          status == 302
         }
       }
     end
@@ -75,11 +94,44 @@ describe Rack::GSuiteRestriction do
       end
 
       describe '/admin/user' do
-        it {
-          status, headers, body = middleware.call(request('/admin/user'))
+        before {
+          @request = request('/admin/user')
+        }
+        it 'user is not authenticated' do
+          status, headers, body = middleware.call(@request)
           assert {
-            status == 401
+            status == 302
           }
+        end
+        it 'user is  authenticated' do
+          create_user(@request)
+          status, headers, body = middleware.call(@request)
+          assert {
+            status == 200
+          }
+        end
+      end
+    end
+  end
+
+  describe 'option omniauth path prefix' do
+    describe 'not under need auth path' do
+      before {
+        c = config.merge(omniauth_path_prefix: '/foo')
+        @restrict = Rack::GSuiteRestriction.new(app, /^\/admin.*/, c)
+        @request = request('/admin')
+      }
+      it 'redirect to omniauth request path' do
+        assert {
+          status, header, body = @restrict.call(@request)
+          status == 302
+        }
+      end
+      it 'user is authenticated' do
+        create_user(@request)
+        assert {
+          status, header, body = @restrict.call(@request)
+          [status, body] == [200, [TEST_APP_MESSAGE]]
         }
       end
     end
