@@ -14,9 +14,9 @@ module Rack
     def initialize(app, path, config = {})
       dumb_app = lambda {|env| [418, {}, ['not captured']]}
       @oauth_client = OAuthClient.new(app, config)
-      auth_path = need_auth_path(path, @oauth_client)
+      match_path = build_match_path(path, @oauth_client)
 
-      @path_segment = SimpleEndpoint.new(dumb_app, auth_path) {|req, res, match| need_auth!(req, res, match) }
+      @path_segment = SimpleEndpoint.new(dumb_app, match_path) {|req, res, match| need_auth!(req, res, match) }
       @app = app
     end
     attr_reader :path_segment, :oauth_client
@@ -52,7 +52,7 @@ module Rack
     # @param [Object] oauth_client
     # @return [Regexp]
     # 
-    def need_auth_path(path, oauth_client)
+    def build_match_path(path, oauth_client)
       Regexp.union(path, oauth_client.request_path, oauth_client.callback_path)
     end
   end
