@@ -35,6 +35,8 @@ module Rack
   
           if user_session.create(request.env['omniauth.auth'])
             res = redirect_to(location.restore)
+          else
+            res = forbidden
           end
   
         else
@@ -57,7 +59,7 @@ module Rack
       # @return [Object]
       # 
       def redirect_to(path)
-        [301, { 'Location' => path }, []]
+        [302, { 'Location' => path }, []]
       end
 
       # 
@@ -65,6 +67,13 @@ module Rack
       # 
       def is_authenticated
         [200, {}, 'pass'.to_sym]
+      end
+
+      #
+      # @return [Object]
+      #
+      def forbidden
+        [403, {}, 'invalid user']
       end
 
       # 

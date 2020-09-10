@@ -49,7 +49,7 @@ describe Rack::GSuiteRestriction do
         it 'return redirect' do
           assert {
             status, header, body = restrict('/').call(@request)
-            status == 301
+            status == 302
           }
         end
       end
@@ -76,7 +76,7 @@ describe Rack::GSuiteRestriction do
       it {
         status, headers, body = @restrict.call(@request)
         assert {
-          status == 301
+          status == 302
         }
       }
     end
@@ -100,7 +100,7 @@ describe Rack::GSuiteRestriction do
         it 'user is not authenticated' do
           status, headers, body = middleware.call(@request)
           assert {
-            status == 301
+            status == 302
           }
         end
         it 'user is  authenticated' do
@@ -124,7 +124,7 @@ describe Rack::GSuiteRestriction do
       it 'redirect to omniauth request path' do
         assert {
           status, header, body = @restrict.call(@request)
-          status == 301
+          status == 302
         }
       end
       it 'user is authenticated' do

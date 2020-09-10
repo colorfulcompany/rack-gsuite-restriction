@@ -50,7 +50,7 @@ describe Rack::GSuiteRestriction::RequestController do
         it {
           assert {
             status, header, body = controller.build(request('/'), response)
-            status == 301
+            status == 302
           }
         }
       end
@@ -92,7 +92,7 @@ describe Rack::GSuiteRestriction::RequestController do
           @req.env['omniauth.auth'] = invalid_user
           status, header, body = @controller.build(@req, response)
           assert {
-            status == 401
+            status == 403
           }
         end
       end
@@ -103,7 +103,7 @@ describe Rack::GSuiteRestriction::RequestController do
             @req.env['omniauth.auth'] = user
             status, header, body = @controller.build(@req, response)
             assert {
-              status == 301
+              status == 302
             }
           end
         end
