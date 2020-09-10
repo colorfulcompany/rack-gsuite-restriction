@@ -1,8 +1,6 @@
 require 'rack'
 require 'rack/contrib'
-require_relative './gsuite_restriction/oauth_client'
-require_relative './gsuite_restriction/session/user'
-require_relative './gsuite_restriction/session/location'
+require_relative './gsuite_restriction/request_controller'
 
 module Rack
   class GSuiteRestriction
@@ -41,50 +39,12 @@ module Rack
     # :reek:UtilityFunction :reek:UnusedParameters
     def need_auth(req, res, match = nil)
       res.status = 401
-      body = ''
 
-      user_session = Session::User.new(req)
-      location = Session::Location.new(req)
-
-      case req.path
-
-      when oauth_client.request_path
-        status, header, body = oauth_client.call(req.env)
-        res.status = status
-        header.keys.each { |k| res[k] = header[k] }
-
-      when oauth_client.callback_path
-        oauth_client.call(req.env)
-
-        if user_session.create(req.env['omniauth.auth'])
-          status, header, body = redirect_to(location.restore)
-          res.status = status
-          header.keys.each { |k| res[k] = header[k] }
-        end
-
-      else
-        # user is not authenticated.
-        if user_session.find.nil?
-          location.store(req.url)
-          status, header, body = redirect_to(oauth_client.request_path)
-          res.status = status
-          header.keys.each { |k| res[k] = header[k] }
-
-        # user is authenticated.
-        else
-          body = 'pass'.to_sym
-        end
-      end
+      status, header, body = (RequestController.new(oauth_client)).build(req, res)
+      res.status = status
+      header.keys.each { |k| res[k] = header[k] }
 
       body
-    end
-
-    # 
-    # @param [String] path
-    # @return [Object]
-    # 
-    def redirect_to(path)
-      [301, { 'Location' => path }, []]
     end
 
     # 
