@@ -2,9 +2,9 @@ require "test_helper"
 
 describe Rack::GSuiteRestriction::RequestController do
   let(:app) { lambda {|env| [200, {}, [TEST_APP_MESSAGE]]} }
-  let(:domain) { 'test.com' }
+  let(:domain) { 'example.com' }
   let(:user) { Hashie::Mash.new({ info: {email: "foo@#{domain}"}}) }
-  let(:invalid_user) { Hashie::Mash.new({ info: {email: "foo@bar.com"}}) }
+  let(:invalid_user) { Hashie::Mash.new({ info: {email: "foo@example.co.jp"}}) }
 
   def oauth_client
     Rack::GSuiteRestriction::OAuthClient.new(app, {

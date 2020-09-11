@@ -2,7 +2,7 @@ require "test_helper"
 
 describe Rack::GSuiteRestriction::Session::User do
   let(:app) { lambda {|env| [200, {}, [TEST_APP_MESSAGE]]} }
-  let(:domain) { 'test.com' }
+  let(:domain) { 'example.com' }
 
   #
   # @param [String] uri
