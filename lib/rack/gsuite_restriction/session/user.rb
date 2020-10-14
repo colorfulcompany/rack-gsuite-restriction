@@ -5,17 +5,16 @@ module Rack
     class Session
       class User < Base
         KEY = "#{KEY_BASE}.user".freeze
-        DOMAIN = 'colorfulcompany.co.jp'.freeze
 
         # 
         # @param [Rack::Request] request
-        # @param [String] domain
+        # @param [Array] domains
         # 
-        def initialize(request, domain = DOMAIN)
+        def initialize(request, domains)
           super(request)
-          @domain = domain
+          @domains = domains
         end
-        attr_reader :domain
+        attr_reader :domains
 
         # 
         # @param [Object] user
@@ -39,7 +38,7 @@ module Rack
         # @return [Boolean]
         # 
         def valid?(user)
-          domain == user.info.email.split('@')[1]
+          domains.include?(user.info.email.split('@')[1])
         end
       end
     end

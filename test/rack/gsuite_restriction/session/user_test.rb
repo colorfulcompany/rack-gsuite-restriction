@@ -2,7 +2,7 @@ require "test_helper"
 
 describe Rack::GSuiteRestriction::Session::User do
   let(:app) { lambda {|env| [200, {}, [TEST_APP_MESSAGE]]} }
-  let(:domain) { 'example.com' }
+  let(:domains) { ['example.com'] }
 
   #
   # @param [String] uri
@@ -28,14 +28,14 @@ describe Rack::GSuiteRestriction::Session::User do
   def valid_user
     Hashie::Mash.new({
       info: {
-        email: "foo@#{domain}"
+        email: "foo@#{domains.first}"
       }
     })
   end
 
   describe '#create' do
     before {
-      @user_session = Rack::GSuiteRestriction::Session::User.new(request('/'), domain)
+      @user_session = Rack::GSuiteRestriction::Session::User.new(request('/'), domains)
     }
     describe 'invalid user' do
       it {
@@ -55,7 +55,7 @@ describe Rack::GSuiteRestriction::Session::User do
 
   describe '#find' do
     before {
-      @user_session = Rack::GSuiteRestriction::Session::User.new(request('/'), domain)
+      @user_session = Rack::GSuiteRestriction::Session::User.new(request('/'), domains)
     }
     describe 'user is empty' do
       it {
@@ -78,7 +78,7 @@ describe Rack::GSuiteRestriction::Session::User do
 
   describe '#valid?' do
     before {
-      @user_session = Rack::GSuiteRestriction::Session::User.new(request('/'), domain)
+      @user_session = Rack::GSuiteRestriction::Session::User.new(request('/'), domains)
     }
     it 'invalid user' do
       assert {
@@ -89,6 +89,29 @@ describe Rack::GSuiteRestriction::Session::User do
       assert {
         @user_session.valid?(valid_user) == true
       }
+    end
+  end
+
+  describe 'mulutiple permit domains' do
+    def another_valid_user
+      Hashie::Mash.new({
+        info: {
+          email: "foo@bar.example.com"
+        }
+      })
+    end
+  
+    before {
+      @user_session = Rack::GSuiteRestriction::Session::User.new(request('/'), domains.push('bar.example.com'))
+    }
+    it 'bar.example.com' do
+      assert {
+        @user_session.valid?(another_valid_user) == true
+      }
+    end
+
+    it 'valid user' do
+      @user_session.valid?(valid_user) == true
     end
   end
 end
