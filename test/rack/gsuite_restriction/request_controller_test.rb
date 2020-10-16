@@ -2,19 +2,24 @@ require "test_helper"
 
 describe Rack::GSuiteRestriction::RequestController do
   let(:app) { lambda {|env| [200, {}, [TEST_APP_MESSAGE]]} }
-  let(:domain) { 'example.com' }
-  let(:user) { Hashie::Mash.new({ info: {email: "foo@#{domain}"}}) }
+  let(:domains) { ['example.com'] }
+  let(:user) { Hashie::Mash.new({ info: {email: "foo@#{domains.first}"}}) }
   let(:invalid_user) { Hashie::Mash.new({ info: {email: "foo@example.co.jp"}}) }
 
-  def oauth_client
-    Rack::GSuiteRestriction::OAuthClient.new(app, {
+  def config
+    {
       :client_id => 'foo',
       :client_secret => 'bar',
-    })
+      :oauth_permit_domains => domains
+    }
+  end
+
+  def oauth_client
+    Rack::GSuiteRestriction::OAuthClient.new(app, config)
   end
 
   def controller(cllient = oauth_client)
-    Rack::GSuiteRestriction::RequestController.new(cllient)
+    Rack::GSuiteRestriction::RequestController.new(cllient, config)
   end
 
   #
@@ -37,7 +42,7 @@ describe Rack::GSuiteRestriction::RequestController do
   end
 
   def create_user(req)
-    (Rack::GSuiteRestriction::Session::User.new(req, domain)).create(user)
+    (Rack::GSuiteRestriction::Session::User.new(req, domains)).create(user)
   end
 
   def set_location(req, url)
@@ -98,7 +103,7 @@ describe Rack::GSuiteRestriction::RequestController do
       end
       it 'valid user redirect to location path' do
         @client.stub(:call, nil) do
-          @controller.stub(:create_user_session, Rack::GSuiteRestriction::Session::User.new(@req, domain)) do
+          @controller.stub(:create_user_session, Rack::GSuiteRestriction::Session::User.new(@req, domains)) do
 
             @req.env['omniauth.auth'] = user
             status, header, body = @controller.build(@req, response)

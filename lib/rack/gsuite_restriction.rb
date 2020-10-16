@@ -13,6 +13,7 @@ module Rack
     #
     def initialize(app, path, config = {})
       dumb_app = lambda {|env| [418, {}, ['not captured']]}
+      @config = config
       @oauth_client = OAuthClient.new(app, config)
       match_path = build_match_path(path, @oauth_client)
 
@@ -40,7 +41,7 @@ module Rack
     def need_auth!(req, res, match = nil)
       res.status = 401
 
-      status, header, body = (RequestController.new(oauth_client)).build(req, res)
+      status, header, body = (RequestController.new(oauth_client, @config)).build(req, res)
       res.status = status
       header.keys.each { |k| res[k] = header[k] }
 

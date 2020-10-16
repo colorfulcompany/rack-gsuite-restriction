@@ -5,12 +5,14 @@ require_relative './session/location'
 module Rack
   class GSuiteRestriction
     class RequestController
+      PERMIT_DOMAINS = ['colorfulcompany.co.jp'].freeze
 
       #
       # @param [OAuthClient] oauth_client
       #
-      def initialize(oauth_client)
+      def initialize(oauth_client, config)
         @oauth_client = oauth_client
+        @domains = config[:oauth_permit_domains] || PERMIT_DOMAINS
       end
       attr_reader :oauth_client
 
@@ -22,7 +24,7 @@ module Rack
       def build(request, response)
         res = response.finish
 
-        user_session = create_user_session(request)
+        user_session = create_user_session(request, @domains)
         location = Session::Location.new(request)
   
         case request.path
@@ -80,8 +82,8 @@ module Rack
       # @param [Rack::Request] req
       # @return [Session::User]
       # 
-      def create_user_session(req)
-        Session::User.new(req)
+      def create_user_session(req, domeins)
+        Session::User.new(req, domeins)
       end
     end
   end

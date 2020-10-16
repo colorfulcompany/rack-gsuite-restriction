@@ -29,6 +29,7 @@ config.middleware.use Rack::GSuiteRestriction, path,
   :client_id     => GOOGLE_OAUTH_CLIENT_ID,          # required
   :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,      # required
   :omniauth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
+  :oauth_permit_domains => ['example.com'],          # optional ( default ['colorfulcompany.co.jp'] )
 ```
 
 ### Rack app
@@ -39,6 +40,7 @@ Rack::Builder.new do
     :client_id     => GOOGLE_OAUTH_CLIENT_ID,          # required
     :client_secret => GOOGLE_OAUTH_CLIENT_SECRET,      # required
     :omniauth_path_prefix => /path/to/authentication,  # optional ( default '/admin/auth' )
+    :oauth_permit_domains => ['example.com'],          # optional ( default ['colorfulcompany.co.jp'] )
   run Rack::Application
 end
 ```
